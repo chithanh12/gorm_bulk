@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"bitbucket.org/hoiio/x-go/v3/xerrconv"
 )
 
 type queryBuilder struct{}
@@ -36,8 +34,10 @@ func (q *queryBuilder) BuildInsertQuery(tableName string, rows []interface{}) (*
 	rowValues := make([]string, 0)
 
 	for _, row := range rows {
-		rowMap, error := Mapper().GetValues(row)
-		xerrconv.PanicIfError(xerrconv.DoPanic{Err: error})
+		rowMap, err := Mapper().GetValues(row)
+		if err != nil {
+			return nil, err
+		}
 		rowValues = append(rowValues, valuesHolder)
 
 		for _, prop := range cols {
