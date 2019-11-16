@@ -20,6 +20,26 @@ type Car struct {
 	UpdatedBy string
 }
 
+func TestRemoveElement(t *testing.T) {
+	lst := []string{"a", "b", "c", "d", "e", "f"}
+	lst = removeElement(lst, "a")
+
+	if StringHelper().SliceContains(lst, "a") {
+		t.Error("Is not remove the element a")
+	}
+
+	lst = removeElement(lst, "f")
+	if StringHelper().SliceContains(lst, "f") {
+		t.Error("Is not remove the element f")
+	}
+
+	lst = removeElement(lst, "c")
+	if StringHelper().SliceContains(lst, "c") {
+		t.Error("Is not remove the element c")
+	}
+
+}
+
 func TestMapperGetColumn(t *testing.T) {
 	now := time.Now()
 

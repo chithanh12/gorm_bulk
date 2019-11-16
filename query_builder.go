@@ -16,12 +16,17 @@ func QueryBuilder() *queryBuilder {
 	return &queryBuilder{}
 }
 
-func (q *queryBuilder) BuildInsertQuery(tableName string, rows []interface{}) (*QueryResult, error) {
+func (q *queryBuilder) BuildInsertQuery(tableName string, rows []interface{}, ignoreCols ...string) (*QueryResult, error) {
 	cols, err := Mapper().GetColumns(rows[0])
 	if err != nil {
 		return nil, err
 	}
 
+	if len(ignoreCols) > 0 {
+		for _, c := range ignoreCols {
+			cols = removeElement(cols, c)
+		}
+	}
 	values := make([]string, 0, len(cols))
 	for i := 0; i < len(cols); i++ {
 		values = append(values, "?")
@@ -53,7 +58,7 @@ func (q *queryBuilder) BuildInsertQuery(tableName string, rows []interface{}) (*
 	}, nil
 }
 
-func (q *queryBuilder) BuildInsertOnDuplicateUpdate(tableName string, rows []interface{}) (*QueryResult, error) {
+func (q *queryBuilder) BuildInsertOnDuplicateUpdate(tableName string, rows []interface{}, ignoreColumns ...string) (*QueryResult, error) {
 	if len(rows) <= 0 {
 		return nil, errors.New("Empty rows parameters")
 	}
@@ -75,4 +80,20 @@ func (q *queryBuilder) BuildInsertOnDuplicateUpdate(tableName string, rows []int
 
 	insertResult.Query = fmt.Sprintf("%v on duplicate key update %v", insertResult.Query, strings.Join(update, ","))
 	return insertResult, nil
+}
+
+func removeElement(items []string, el string) []string {
+	idx := -1
+	for i, item := range items {
+		if item == el {
+			idx = i
+			break
+		}
+	}
+
+	if idx >= 0 {
+		return append(items[:idx], items[idx+1:]...)
+	}
+
+	return items
 }
