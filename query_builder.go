@@ -1,6 +1,7 @@
 package gorm_bulk
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -8,13 +9,21 @@ import (
 )
 
 type queryBuilder struct{}
+type QueryResult struct {
+	Query      string
+	Parameters []interface{}
+}
 
 func QueryBuilder() *queryBuilder {
 	return &queryBuilder{}
 }
 
-func (q *queryBuilder) BuildInsertQuery(tableName string, rows []interface{}) (string, []interface{}) {
-	cols := Mapper().GetInsertColumns(rows[0])
+func (q *queryBuilder) BuildInsertQuery(tableName string, rows []interface{}) (*QueryResult, error) {
+	cols, err := Mapper().GetColumns(rows[0])
+	if err != nil {
+		return nil, err
+	}
+
 	values := make([]string, 0, len(cols))
 	for i := 0; i < len(cols); i++ {
 		values = append(values, "?")
@@ -37,22 +46,33 @@ func (q *queryBuilder) BuildInsertQuery(tableName string, rows []interface{}) (s
 	}
 
 	query = fmt.Sprintf("%v %v", query, strings.Join(rowValues, ", "))
-	return query, params
+
+	return &QueryResult{
+		Query:      query,
+		Parameters: params,
+	}, nil
 }
 
-func (q *queryBuilder) BuildInsertOnDuplicateUpdate(tableName string, rows []interface{}) (string, []interface{}) {
+func (q *queryBuilder) BuildInsertOnDuplicateUpdate(tableName string, rows []interface{}) (*QueryResult, error) {
 	if len(rows) <= 0 {
-		return "", nil
+		return nil, errors.New("Empty rows parameters")
 	}
 
-	query, params := q.BuildInsertQuery(tableName, rows)
-	updateCols := Mapper().GetUpdateColumns(rows[0])
+	insertResult, err := q.BuildInsertQuery(tableName, rows)
+	if err != nil {
+		return nil, err
+	}
+	updateCols, err := Mapper().GetColumns(rows[0])
+	if err != nil {
+		return nil, err
+	}
+
 	var update []string
 
 	for _, col := range updateCols {
 		update = append(update, fmt.Sprintf("`%v`=values(`%v`)", col, col))
 	}
 
-	onUpdateQuery := fmt.Sprintf("%v on duplicate key update %v", query, strings.Join(update, ","))
-	return onUpdateQuery, params
+	insertResult.Query = fmt.Sprintf("%v on duplicate key update %v", insertResult.Query, strings.Join(update, ","))
+	return insertResult, nil
 }

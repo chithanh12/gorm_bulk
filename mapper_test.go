@@ -13,11 +13,11 @@ type Property struct {
 }
 
 type Car struct {
-	Id        int       `column:"insert"`
-	Name      string    `column:"insert,update"`
-	Property  Property  `json:"property" gorm:"type:json" column:"insert,update"`
-	CreatedAt time.Time `column:"insert"`
-	UpdatedBy string    `column:"insert"`
+	Id        int
+	Name      string
+	Property  Property `json:"property" gorm:"type:json"`
+	CreatedAt time.Time
+	UpdatedBy string
 }
 
 func TestMapperGetColumn(t *testing.T) {
@@ -36,7 +36,10 @@ func TestMapperGetColumn(t *testing.T) {
 	}
 
 	// Test get insert column
-	insertColumns := Mapper().GetInsertColumns(car)
+	insertColumns, err := Mapper().GetColumns(car)
+	if err != nil {
+		t.Error(err)
+	}
 	if len(insertColumns) != 5 {
 		t.Errorf("The number of insert columns is not correct: expected %v but get %v", 5, len(insertColumns))
 	}
@@ -59,21 +62,6 @@ func TestMapperGetColumn(t *testing.T) {
 
 	if !StringHelper().SliceContains(insertColumns, "created_at") {
 		t.Error("Missing column `created_at`")
-	}
-
-	//Test get param value
-	updatedCols := Mapper().GetUpdateColumns(car)
-
-	if len(updatedCols) != 2 {
-		t.Errorf("The number of insert columns is not correct: expected %v but get %v", 2, len(updatedCols))
-	}
-
-	if !StringHelper().SliceContains(updatedCols, "name") {
-		t.Error("Missing column `name`")
-	}
-
-	if !StringHelper().SliceContains(updatedCols, "property") {
-		t.Error("Missing column `property`")
 	}
 }
 
@@ -156,11 +144,17 @@ func TestBuildInsertQuery(t *testing.T) {
 		},
 	)
 
-	query, params := QueryBuilder().BuildInsertQuery("cars", rows)
+	query, err := QueryBuilder().BuildInsertQuery("cars", rows)
+	if err != nil {
+		t.Error(err)
+	}
+	if query == nil {
+		t.Error("error query is nill")
+	}
 	expectedQuery := "insert into `cars` (`id`,`name`,`property`,`created_at`,`updated_by`) values (?,?,?,?,?), (?,?,?,?,?)"
 
 	// check syntax
-	if query != expectedQuery {
+	if query.Query != expectedQuery {
 		t.Error("Generated query is not correct:")
 		t.Log("Expected query:", expectedQuery)
 		t.Log("Generated query:", query)
@@ -184,13 +178,13 @@ func TestBuildInsertQuery(t *testing.T) {
 	expectedParams = append(expectedParams, now1)
 	expectedParams = append(expectedParams, "nct2")
 
-	if len(params) != len(expectedParams) {
-		t.Errorf("Number of params is not correct. Expedted %v rows but got %v", len(expectedParams), len(params))
+	if len(query.Parameters) != len(expectedParams) {
+		t.Errorf("Number of params is not correct. Expedted %v rows but got %v", len(expectedParams), len(query.Parameters))
 	}
 
-	for idx, _ := range params {
-		if params[idx] != expectedParams[idx] {
-			t.Errorf("Expected param at %v is %v but got %v", idx, expectedParams[idx], params[idx])
+	for idx, _ := range query.Parameters {
+		if query.Parameters[idx] != expectedParams[idx] {
+			t.Errorf("Expected param at %v is %v but got %v", idx, expectedParams[idx], query.Parameters[idx])
 		}
 	}
 }
@@ -222,15 +216,19 @@ func TestBuildInsertOnDuplicateQuery(t *testing.T) {
 	},
 	)
 
-	query, params := QueryBuilder().BuildInsertOnDuplicateUpdate("cars", rows)
+	query, err := QueryBuilder().BuildInsertOnDuplicateUpdate("cars", rows)
+	if err != nil {
+		t.Error(err)
+	}
+
 	expectedQuery := "insert into `cars` (`id`,`name`,`property`,`created_at`,`updated_by`) values (?,?,?,?,?), (?,?,?,?,?) " +
-		"on duplicate key update `name`=values(`name`),`property`=values(`property`)"
+		"on duplicate key update `id`=values(`id`),`name`=values(`name`),`property`=values(`property`),`created_at`=values(`created_at`),`updated_by`=values(`updated_by`)"
 
 	// check syntax
-	if query != expectedQuery {
+	if query.Query != expectedQuery {
 		t.Error("Generated query is not correct:")
 		t.Log("Expected query:", expectedQuery)
-		t.Log("Generated query:", query)
+		t.Log("Generated query:", query.Query)
 	}
 
 	//check params
@@ -252,13 +250,13 @@ func TestBuildInsertOnDuplicateQuery(t *testing.T) {
 	expectedParams = append(expectedParams, now1)
 	expectedParams = append(expectedParams, "nct2")
 
-	if len(params) != len(expectedParams) {
-		t.Errorf("Number of params is not correct. Expedted %v rows but got %v", len(expectedParams), len(params))
+	if len(query.Parameters) != len(expectedParams) {
+		t.Errorf("Number of params is not correct. Expedted %v rows but got %v", len(expectedParams), len(query.Parameters))
 	}
 
-	for idx, _ := range params {
-		if params[idx] != expectedParams[idx] {
-			t.Errorf("Expected param at %v is %v but got %v", idx, expectedParams[idx], params[idx])
+	for idx, _ := range query.Parameters {
+		if query.Parameters[idx] != expectedParams[idx] {
+			t.Errorf("Expected param at %v is %v but got %v", idx, expectedParams[idx], query.Parameters[idx])
 		}
 	}
 }

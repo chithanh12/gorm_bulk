@@ -15,19 +15,14 @@ type Entity interface{}
 
 type (
 	colMapper struct {
-		mu         sync.Mutex
-		dictionary map[string]EntityColumn
-	}
-
-	EntityColumn struct {
-		Inserts []string
-		Updates []string
+		mu              sync.Mutex
+		tableColumnDict map[string][]string
 	}
 )
 
 func init() {
 	entityMapper = &colMapper{
-		dictionary: map[string]EntityColumn{},
+		tableColumnDict: make(map[string][]string, 0),
 	}
 }
 
@@ -35,63 +30,38 @@ func Mapper() *colMapper {
 	return entityMapper
 }
 
-func (cm *colMapper) getColumns(entity Entity) (EntityColumn, error) {
+func (cm *colMapper) getColumns(entity Entity) ([]string, error) {
 	val := reflect.ValueOf(entity)
 	t := reflect.TypeOf(entity)
 	if t.Kind() == reflect.Ptr {
 		val = val.Elem()
 	}
 
-	result := EntityColumn{
-		Inserts: make([]string, 0),
-		Updates: make([]string, 0),
-	}
+	result := make([]string, 0)
 
 	for i := 0; i < val.NumField(); i++ {
 		typeField := val.Type().Field(i)
-		tag := typeField.Tag
-
-		if value := tag.Get("column"); len(value) > 0 {
-			if strings.Contains(value, "insert") {
-				result.Inserts = append(result.Inserts, StringHelper().ToSnakeCase(typeField.Name))
-			}
-
-			if strings.Contains(value, "update") {
-				result.Updates = append(result.Updates, StringHelper().ToSnakeCase(typeField.Name))
-			}
-		}
+		result = append(result, StringHelper().ToSnakeCase(typeField.Name))
 	}
 
 	return result, nil
 }
 
-func (cm *colMapper) GetInsertColumns(entity Entity) []string {
+func (cm *colMapper) GetColumns(entity Entity) ([]string, error) {
 	structName := structName(entity)
-	if mapper, ok := entityMapper.dictionary[structName]; ok {
-		return mapper.Inserts
+	if columns, ok := entityMapper.tableColumnDict[structName]; ok {
+		return columns, nil
 	}
 
-	mapper, _ := cm.getColumns(entity)
+	columns, err := cm.getColumns(entity)
+	if err != nil {
+		return nil, err
+	}
 	entityMapper.mu.Lock()
 	defer entityMapper.mu.Unlock()
 
-	entityMapper.dictionary[structName] = mapper
-	return mapper.Inserts
-}
-
-func (cm *colMapper) GetUpdateColumns(entity Entity) []string {
-	structName := structName(entity)
-	if mapper, ok := entityMapper.dictionary[structName]; ok {
-		return mapper.Updates
-	}
-
-	mapper, _ := cm.getColumns(entity)
-
-	entityMapper.mu.Lock()
-	defer entityMapper.mu.Unlock()
-
-	entityMapper.dictionary[structName] = mapper
-	return mapper.Updates
+	entityMapper.tableColumnDict[structName] = columns
+	return columns, nil
 }
 
 func (cm *colMapper) GetValues(entity Entity) (map[string]interface{}, error) {
@@ -109,19 +79,17 @@ func (cm *colMapper) GetValues(entity Entity) (map[string]interface{}, error) {
 		typeField := val.Type().Field(i)
 		tag := typeField.Tag
 
-		if value := tag.Get("column"); len(value) > 0 {
-			column := StringHelper().ToSnakeCase(typeField.Name)
+		column := StringHelper().ToSnakeCase(typeField.Name)
 
-			if value := tag.Get("gorm"); len(value) > 0 && strings.Contains(value, "json") {
-				jsonValue, err := json.Marshal(valueField.Interface())
-				if err != nil {
-					return nil, err
-				}
-
-				result[column] = string(jsonValue)
-			} else {
-				result[column] = valueField.Interface()
+		if value := tag.Get("gorm"); len(value) > 0 && strings.Contains(value, "json") {
+			jsonValue, err := json.Marshal(valueField.Interface())
+			if err != nil {
+				return nil, err
 			}
+
+			result[column] = string(jsonValue)
+		} else {
+			result[column] = valueField.Interface()
 		}
 	}
 

@@ -16,6 +16,10 @@ type (
 		Prop2 string `json:"prop2"`
 	}
 
+	InnerStruct struct {
+		Name string `json:"name"`
+	}
+
 	SampleModel struct {
 		Id        int64
 		Name      string   `column:"insert,update"`
