@@ -68,9 +68,11 @@ func (q *queryBuilder) BuildInsertOnDuplicateUpdate(tableName string, rows []int
 		return nil, err
 	}
 	updateCols, err := Mapper().GetColumns(rows[0])
+
 	for _, ic := range ignoreColumns {
 		updateCols = removeElement(updateCols, ic)
 	}
+
 	if err != nil {
 		return nil, err
 	}

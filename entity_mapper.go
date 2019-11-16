@@ -49,10 +49,8 @@ func (cm *colMapper) getColumns(entity Entity) ([]string, error) {
 
 func (cm *colMapper) GetColumns(entity Entity) ([]string, error) {
 	structName := structName(entity)
-	rs := make([]string, 0)
 	if columns, ok := entityMapper.tableColumnDict[structName]; ok {
-		copy(rs, columns)
-		return rs, nil
+		return clone(columns), nil
 	}
 
 	columns, err := cm.getColumns(entity)
@@ -63,9 +61,8 @@ func (cm *colMapper) GetColumns(entity Entity) ([]string, error) {
 	defer entityMapper.mu.Unlock()
 
 	entityMapper.tableColumnDict[structName] = columns
-	copy(rs, columns)
 
-	return rs, nil
+	return clone(columns), nil
 }
 
 func (cm *colMapper) GetValues(entity Entity) (map[string]interface{}, error) {
@@ -106,4 +103,10 @@ func structName(myvar interface{}) string {
 	} else {
 		return t.Name()
 	}
+}
+
+func clone(items []string) []string {
+	rs := make([]string, 0, len(items))
+	copy(rs, items)
+	return rs
 }
