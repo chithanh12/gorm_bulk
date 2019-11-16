@@ -107,6 +107,8 @@ func structName(myvar interface{}) string {
 
 func clone(items []string) []string {
 	rs := make([]string, 0, len(items))
-	copy(rs, items)
+	for _, i := range items {
+		rs = append(rs, i)
+	}
 	return rs
 }
