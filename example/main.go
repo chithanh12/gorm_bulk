@@ -1,6 +1,9 @@
 package main
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -106,7 +109,29 @@ func main() {
 
 	fmt.Println("Process finish")
 }
+
 func connectionString(host, user, password, db string) string {
 	return fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8mb4&timeout=90s&collation=utf8mb4_unicode_ci&parseTime=true&loc=Local&multiStatements=true",
 		user, password, host, db)
+}
+
+func (pc *JsonProp) Scan(val interface{}) error {
+	switch v := val.(type) {
+	case []byte:
+		json.Unmarshal(v, &pc)
+		return nil
+	case string:
+		json.Unmarshal([]byte(v), &pc)
+		return nil
+	default:
+		return errors.New(fmt.Sprintf("Unsupported type: %T", v))
+	}
+}
+
+func (pc *JsonProp) Value() (driver.Value, error) {
+	if pc == nil {
+		return nil, nil
+	}
+
+	return json.Marshal(pc)
 }
