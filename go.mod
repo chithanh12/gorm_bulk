@@ -2,4 +2,8 @@ module github.com/chithanh12/gorm_bulk
 
 go 1.12
 
-require bitbucket.org/hoiio/x-go/v3 v3.8.7
+require (
+	bitbucket.org/hoiio/x-go/v3 v3.8.7
+	github.com/go-sql-driver/mysql v1.4.1
+	github.com/jinzhu/gorm v1.9.10
+)

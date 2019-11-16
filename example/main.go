@@ -16,10 +16,6 @@ type (
 		Prop2 string `json:"prop2"`
 	}
 
-	InnerStruct struct {
-		Name string `json:"name"`
-	}
-
 	SampleModel struct {
 		Id        int64
 		Name      string   `column:"insert,update"`
@@ -51,6 +47,11 @@ func main() {
 		fmt.Println("Can not create sample model tables")
 	}
 
+	dbErr := db.Delete(&SampleModel{}).Error
+	if dbErr != nil {
+		panic(dbErr)
+	}
+
 	rows := []interface{}{
 		&SampleModel{
 			Id:   0,
@@ -72,12 +73,38 @@ func main() {
 		},
 	}
 	// Scenario 1: Insert bulk
-	query, params := gorm_bulk.QueryBuilder().BuildInsertQuery(tableName, rows)
-	err = db.Exec(query+";", params...).Error
+	query, err := gorm_bulk.QueryBuilder().BuildInsertQuery(tableName, rows)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Exec(query.Query, query.Parameters...).Error
 
 	if err != nil {
-		fmt.Errorf("Error when process insert bulk %v", err)
+		panic(err)
 	}
+
+	var item SampleModel
+	dbErr = db.Where(&SampleModel{Name: "Sample Model 1"}).First(&item).Error
+	if dbErr != nil {
+		panic(dbErr)
+	}
+
+	item.Name = "Sample 1 updated"
+	item.CreatedAt = time.Now()
+
+	updateQuery, err := gorm_bulk.QueryBuilder().BuildInsertOnDuplicateUpdate(tableName, []interface{}{item})
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Exec(updateQuery.Query, updateQuery.Parameters...).Error
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Process finish")
 }
 func connectionString(host, user, password, db string) string {
 	return fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?charset=utf8mb4&timeout=90s&collation=utf8mb4_unicode_ci&parseTime=true&loc=Local&multiStatements=true",
