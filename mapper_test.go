@@ -164,7 +164,7 @@ func TestBuildInsertQuery(t *testing.T) {
 		},
 	)
 
-	query, err := QueryBuilder().BuildInsertQuery("cars", rows)
+	query, err := QueryBuilder().BuildInsertQuery("cars", rows, nil)
 	if err != nil {
 		t.Error(err)
 	}
@@ -236,7 +236,7 @@ func TestBuildInsertOnDuplicateQuery(t *testing.T) {
 	},
 	)
 
-	query, err := QueryBuilder().BuildInsertOnDuplicateUpdate("cars", rows)
+	query, err := QueryBuilder().BuildInsertOnDuplicateUpdate("cars", rows, nil)
 	if err != nil {
 		t.Error(err)
 	}

@@ -16,7 +16,7 @@ func QueryBuilder() *queryBuilder {
 	return &queryBuilder{}
 }
 
-func (q *queryBuilder) BuildInsertQuery(tableName string, rows []interface{}, ignoreCols ...string) (*QueryResult, error) {
+func (q *queryBuilder) BuildInsertQuery(tableName string, rows []interface{}, ignoreCols []string) (*QueryResult, error) {
 	cols, err := Mapper().GetColumns(rows[0])
 	if err != nil {
 		return nil, err
@@ -58,12 +58,12 @@ func (q *queryBuilder) BuildInsertQuery(tableName string, rows []interface{}, ig
 	}, nil
 }
 
-func (q *queryBuilder) BuildInsertOnDuplicateUpdate(tableName string, rows []interface{}, ignoreColumns ...string) (*QueryResult, error) {
+func (q *queryBuilder) BuildInsertOnDuplicateUpdate(tableName string, rows []interface{}, ignoreColumns []string) (*QueryResult, error) {
 	if len(rows) <= 0 {
 		return nil, errors.New("Empty rows parameters")
 	}
 
-	insertResult, err := q.BuildInsertQuery(tableName, rows)
+	insertResult, err := q.BuildInsertQuery(tableName, rows, ignoreColumns)
 	if err != nil {
 		return nil, err
 	}
