@@ -7,11 +7,11 @@ Mark the property that you want to insert, update in bulk query by using the tag
 Example:
 ```
 type Car struct {
-	Id        int       `column:"insert"`
-	Name      string    `column:"insert,update"`
-	Property  Property  `json:"property" gorm:"type:json" column:"insert,update"`
-	CreatedAt time.Time `column:"insert"`
-	UpdatedBy string    `column:"insert"`
+	Id        int       
+	Name      string   
+	Property  Property  `json:"property" gorm:"type:json"`
+	CreatedAt time.Time 
+	UpdatedBy string   
 }
 ```
 ## Build query
@@ -30,17 +30,17 @@ car := &Car{
     UpdatedBy: "admin",
 }
 
-query, params := QueryBuilder().BuildInsertQuery(tableName, rows)
+statement, err := QueryBuilder().BuildInsertQuery(tableName, rows)
 ```
 
-The generated `query` result as: 
+The generated `statement.Query` result as: 
 ```
 insert into `cars` (`id`,`name`,`property`,`created_at`,`updated_by`) values (?,?,?,?,?)
 ```
 
 And you can execute the query with the output param as follow:
 ```
-err = db.Exec(query, params...).Error
+err = db.Exec(statement.Query, statement.Parameters...).Error
 ```
 - Insert on update duplicate
 # Note:
